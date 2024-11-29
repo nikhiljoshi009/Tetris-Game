@@ -41,8 +41,8 @@ stage('OWASP FS Scan') {
 ## Image updater stage
 ```
 environment {
-    GIT_REPO_NAME = "Tetris-Game"
-    GIT_USER_NAME = "ajaydabe"
+    GIT_REPO_NAME = "Tetris-Game11"
+    GIT_USER_NAME = "nikhiljoshi009"
 }
 
 stage('Update Deployment-Service File') {
@@ -50,7 +50,7 @@ stage('Update Deployment-Service File') {
         script {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
               // Determine the image name dynamically based on your versioning strategy
-              NEW_IMAGE_NAME = "ajaydabe/tetris:$TAG"
+              NEW_IMAGE_NAME = "nikjoshi9/tetris:$TAG"
 
               // Replace the image name in the deployment-service.yaml file
               sh "sed -i 's|image: .*|image: $NEW_IMAGE_NAME|' deployment-service.yml"
