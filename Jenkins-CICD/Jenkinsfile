@@ -12,7 +12,7 @@ pipeline{
         }
         stage('checkout from Git'){
             steps{
-                git branch: 'Terraform-Jenkins-CICD', url: 'https://github.com/ajaydabe/Tetris-Game.git'
+                git branch: 'Terraform-Jenkins-CICD', url: 'https://github.com/nikhiljoshi009/Tetris-Game11.git'
             }
         }
         stage("Sonarqube Analysis "){
