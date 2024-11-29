@@ -7,8 +7,8 @@ pipeline{
     }
     environment {
         SCANNER_HOME=tool 'sonar-scanner'
-        GIT_REPO_NAME = "Tetris-Game"
-        GIT_USER_NAME = "ajaydabe"
+        GIT_REPO_NAME = "Tetris-Game11"
+        GIT_USER_NAME = "nikhiljoshi009"
         TAG = V1
     }
     stages {
@@ -19,7 +19,7 @@ pipeline{
         }
         stage('Checkout from Git'){
             steps{
-                git branch: 'main', url: 'https://github.com/ajaydabe/Tetris-Game.git'
+                git branch: 'main', url: 'https://github.com/nikhiljoshi009/Tetris-Game11.git'
             }
         }
         stage("Sonarqube Analysis "){
@@ -58,20 +58,20 @@ pipeline{
         stage("Docker Build Image"){
             steps{
                 sh "docker build -t tetris:$TAG ."
-                sh "docker tag tetris:$TAG ajaydabe/tetris:$TAG"
+                sh "docker tag tetris:$TAG nikjoshi9/tetris:$TAG"
             }
         }
         stage ('Docker Push Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh 'docker login -u $USERNAME -p $PASSWORD'
-                    sh 'docker push ajaydabe/tetris:$TAG'
+                    sh 'docker push nikjoshi9/tetris:$TAG'
                 }
             }
         }
         stage("TRIVY Image Scan"){
             steps{
-                sh "trivy image ajaydabe/tetris:$TAG > trivyimage.txt" 
+                sh "trivy image nikjoshi9/tetris:$TAG > trivyimage.txt" 
             }
         }
         
@@ -80,7 +80,7 @@ pipeline{
                 script {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                     // Determine the image name dynamically based on your versioning strategy
-                    NEW_IMAGE_NAME = "ajaydabe/tetris:$TAG"
+                    NEW_IMAGE_NAME = "nikjoshi9/tetris:$TAG"
 
                     // Replace the image name in the deployment-service.yaml file
                     sh "sed -i 's|image: .*|image: $NEW_IMAGE_NAME|' deployment-service.yml"
