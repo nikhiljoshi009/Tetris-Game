@@ -1,0 +1,97 @@
+pipeline{
+    agent any
+    tools{
+        jdk 'jdk17'
+        nodejs 'node16'
+        dotnetsdk '.net'
+    }
+    environment {
+        SCANNER_HOME=tool 'sonar-scanner'
+        GIT_REPO_NAME = "Tetris-Game"
+        GIT_USER_NAME = "ajaydabe"
+        TAG = V1
+    }
+    stages {
+        stage('Clean Workspace'){
+            steps{
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git'){
+            steps{
+                git branch: 'main', url: 'https://github.com/ajaydabe/Tetris-Game.git'
+            }
+        }
+        stage("Sonarqube Analysis "){
+            steps{
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Tetris$TAG \
+                    -Dsonar.projectKey=Tetris$TAG '''
+                }
+            }
+        }
+        stage("Quality Gate"){
+           steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            } 
+        }
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('OWASP FS Scan') {
+            steps {
+                withEnv(['JAVA_OPTS=-Xmx6g']) {
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
+        stage('TRIVY FS Scan') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+        stage("Docker Build Image"){
+            steps{
+                sh "docker build -t tetris:$TAG ."
+                sh "docker tag tetris:$TAG ajaydabe/tetris:$TAG"
+            }
+        }
+        stage ('Docker Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh 'docker login -u $USERNAME -p $PASSWORD'
+                    sh 'docker push ajaydabe/tetris:$TAG'
+                }
+            }
+        }
+        stage("TRIVY Image Scan"){
+            steps{
+                sh "trivy image ajaydabe/tetris:$TAG > trivyimage.txt" 
+            }
+        }
+        
+        stage('Update Deployment-Service File') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                    // Determine the image name dynamically based on your versioning strategy
+                    NEW_IMAGE_NAME = "ajaydabe/tetris:$TAG"
+
+                    // Replace the image name in the deployment-service.yaml file
+                    sh "sed -i 's|image: .*|image: $NEW_IMAGE_NAME|' deployment-service.yml"
+
+                    // Git commands to stage, commit, and push the changes
+                    sh 'git add deployment-service.yml'
+                    sh "git commit -m 'Update deploy-svc image to $NEW_IMAGE_NAME'"
+                    sh "git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main"
+                    }
+                }
+            }
+        }
+    }
+}
